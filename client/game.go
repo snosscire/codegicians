@@ -49,15 +49,16 @@ func (c *Camera) Update(p *Player) {
 }
 
 type Game struct {
-	client      *Client
-	window      *sdl.Window
-	renderer    *sdl.Renderer
-	running     bool
-	state       GameState
-	localPlayer *Player
-	otherPlayer *Player
-	mapTexture  *sdl.Texture
-	camera      Camera
+	client       *Client
+	window       *sdl.Window
+	renderer     *sdl.Renderer
+	running      bool
+	state        GameState
+	localPlayer  *Player
+	otherPlayer  *Player
+	mapTexture   *sdl.Texture
+	camera       Camera
+	startMessage MessageGameStart
 }
 
 func NewGame() *Game {
@@ -72,6 +73,7 @@ func (g *Game) handleMessage(msg NetworkMessage, data interface{}) {
 	switch msg {
 	case MESSAGE_GAME_START:
 		log.Println("Start game")
+		g.startMessage = data.(MessageGameStart)
 		g.state = STATE_PLAYING
 	case MESSAGE_PLAYER_MOVE_UP:
 		if g.state == STATE_PLAYING && g.otherPlayer != nil {
@@ -243,15 +245,15 @@ func (g *Game) run() {
 				g.renderer.Copy(g.mapTexture, &mapSrcRect, &mapDstRect)
 			}
 			if g.localPlayer == nil {
-				g.localPlayer = NewPlayer(g.renderer, true, PLAYER1_TEXTURE_PATH)
-				g.localPlayer.Position.X = 32
-				g.localPlayer.Position.Y = 32
+				g.localPlayer = NewPlayer(g.renderer, true, g.startMessage.MyTexture)
+				g.localPlayer.Position.X = g.startMessage.MyPosX
+				g.localPlayer.Position.Y = g.startMessage.MyPosY
 
 			}
 			if g.otherPlayer == nil {
-				g.otherPlayer = NewPlayer(g.renderer, false, PLAYER2_TEXTURE_PATH)
-				g.otherPlayer.Position.X = 32
-				g.otherPlayer.Position.Y = 32
+				g.otherPlayer = NewPlayer(g.renderer, false, g.startMessage.EnemyTexture)
+				g.otherPlayer.Position.X = g.startMessage.EnemyPosX
+				g.otherPlayer.Position.Y = g.startMessage.EnemyPosY
 			}
 
 			if g.otherPlayer != nil {
@@ -276,7 +278,7 @@ func (g *Game) Connect(address string) {
 	g.client = &Client{
 		connection:           connection,
 		connectionReadWriter: readWriter,
-		messageDecoder:       gob.NewDecoder(connection),
+		messageDecoder:       gob.NewDecoder(readWriter),
 		messageEncoder:       gob.NewEncoder(readWriter),
 	}
 	g.client.SetMessageHandler(g.handleMessage)

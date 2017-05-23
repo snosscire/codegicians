@@ -74,20 +74,38 @@ func (c *Client) Read() {
 	}
 }
 
-func (c *Client) send(msg byte, data interface{}) {
+func (c *Client) send(msg byte) {
 	err := c.connectionReadWriter.WriteByte(msg)
 	if err != nil {
 		return
 	}
-	if data != nil {
-		err = c.messageEncoder.Encode(data)
-		if err != nil {
-			return
-		}
-	}
 	err = c.connectionReadWriter.Flush()
+	if err != nil {
+		log.Printf("%v\n", err)
+	}
 }
 
-func (c *Client) Send(msg byte, data interface{}) {
-	go c.send(msg, data)
+func (c *Client) sendData(msg byte, data interface{}) {
+	err := c.connectionReadWriter.WriteByte(msg)
+	if err != nil {
+		return
+	}
+	log.Printf("data: %v", data)
+	err = c.messageEncoder.Encode(data)
+	if err != nil {
+		log.Printf("%v\n", err)
+		return
+	}
+	err = c.connectionReadWriter.Flush()
+	if err != nil {
+		log.Printf("%v\n", err)
+	}
+}
+
+func (c *Client) Send(msg byte) {
+	go c.send(msg)
+}
+
+func (c *Client) SendData(msg byte, data interface{}) {
+	go c.sendData(msg, data)
 }

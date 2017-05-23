@@ -31,9 +31,8 @@ func (c *Client) handleDisconnect() {
 	}
 }
 
-func (c *Client) handleMessage(msg byte) {
+func (c *Client) handleMessage(msg byte, data interface{}) {
 	log.Printf("Command: %d\n", msg)
-	var data interface{}
 	if c.messageHandler != nil {
 		c.messageHandler(NetworkMessage(msg), data)
 	}
@@ -51,7 +50,19 @@ func (c *Client) Read() {
 			c.handleDisconnect()
 			return
 		}
-		c.handleMessage(msg)
+		switch NetworkMessage(msg) {
+		case MESSAGE_GAME_START:
+			var data MessageGameStart
+			err := c.messageDecoder.Decode(&data)
+			if err != nil {
+				log.Printf("%v\n", err)
+				continue
+			}
+			log.Printf("%v\n", data)
+			c.handleMessage(msg, data)
+		default:
+			c.handleMessage(msg, nil)
+		}
 	}
 }
 

@@ -26,7 +26,7 @@ func (g *Game) handlePlayerDisconnect(client *Client) {
 func (g *Game) sendToAllExcept(msg byte, data interface{}, client *Client) {
 	for _, player := range g.players {
 		if player.ClientId() != client.Id() {
-			player.Send(msg, data)
+			player.Send(msg)
 		}
 	}
 }
@@ -40,8 +40,31 @@ func (g *Game) handlePlayerMessage(client *Client, msg byte, data interface{}) {
 }
 
 func (g *Game) Start() {
-	for _, player := range g.players {
-		player.Send(MESSAGE_GAME_START, nil)
+	for i, player := range g.players {
+		var myPosX float32 = 1280.0 - 32.0
+		var myPosY float32 = 32.0
+		var myTexture string = "data/player1.png"
+		var enemyPosX float32 = 32.0
+		var enemyPosY float32 = 1280.0 - 32.0
+		var enemyTexture string = "data/player2.png"
+		if i > 0 {
+			myPosX = 32.0
+			myPosY = 1280.0 - 32.0
+			myTexture = "data/player2.png"
+			enemyPosX = 1280.0 - 32.0
+			enemyPosY = 32.0
+			enemyTexture = "data/player1.png"
+		}
+		data := MessageGameStart{
+			MyClientId:   player.ClientId(),
+			MyPosX:       myPosX,
+			MyPosY:       myPosY,
+			MyTexture:    myTexture,
+			EnemyPosX:    enemyPosX,
+			EnemyPosY:    enemyPosY,
+			EnemyTexture: enemyTexture,
+		}
+		player.SendData(MESSAGE_GAME_START, &data)
 	}
 	//for {
 	//}
