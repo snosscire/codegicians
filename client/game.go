@@ -248,12 +248,15 @@ func (g *Game) run() {
 				g.localPlayer = NewPlayer(g.renderer, true, g.startMessage.MyTexture)
 				g.localPlayer.Position.X = g.startMessage.MyPosX
 				g.localPlayer.Position.Y = g.startMessage.MyPosY
-
+				g.localPlayer.StartPosition.X = g.startMessage.MyPosX
+				g.localPlayer.StartPosition.Y = g.startMessage.MyPosY
 			}
 			if g.otherPlayer == nil {
 				g.otherPlayer = NewPlayer(g.renderer, false, g.startMessage.EnemyTexture)
 				g.otherPlayer.Position.X = g.startMessage.EnemyPosX
 				g.otherPlayer.Position.Y = g.startMessage.EnemyPosY
+				g.otherPlayer.StartPosition.X = g.startMessage.MyPosX
+				g.otherPlayer.StartPosition.Y = g.startMessage.MyPosY
 			}
 
 			if g.otherPlayer != nil {

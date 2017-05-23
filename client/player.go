@@ -12,6 +12,7 @@ const (
 	PLAYER_HEIGHT            int32   = 64
 	PLAYER_TELEPORT_COOLDOWN float32 = 1000.0
 	PLAYER_TELEPORT_SPEED    float32 = 0.5
+	PLAYER_RESPAWN_TIME      float32 = 5000.0
 )
 
 type Position struct {
@@ -27,13 +28,15 @@ type PlayerDirection struct {
 }
 
 type Player struct {
-	me          bool
-	Position    Position
-	Direction   PlayerDirection
-	texture     *sdl.Texture
-	drawTexture bool
-	health      int
-	dying       bool
+	me            bool
+	StartPosition Position
+	Position      Position
+	Direction     PlayerDirection
+	texture       *sdl.Texture
+	drawTexture   bool
+	health        int
+	dying         bool
+	respawnTime   float32
 
 	teleporting      bool
 	teleportCooldown float32
@@ -112,6 +115,7 @@ func (p *Player) TakeDamage(damage int) {
 		p.teleportRectW = 1.0
 		p.teleportRectH = 1.0
 		p.teleportAlpha = 255.0
+		p.respawnTime = PLAYER_RESPAWN_TIME
 	}
 }
 
@@ -147,6 +151,15 @@ func (p *Player) Update(deltaTime float32) {
 	}
 	if p.teleportCooldown > 0.0 {
 		p.teleportCooldown -= deltaTime
+	}
+	if !p.IsAlive() {
+		p.respawnTime -= deltaTime
+		if p.respawnTime <= 0.0 {
+			p.health = 100
+			p.drawTexture = true
+			p.Position.X = p.StartPosition.X
+			p.Position.Y = p.StartPosition.Y
+		}
 	}
 }
 
