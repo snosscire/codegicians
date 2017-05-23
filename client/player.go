@@ -32,6 +32,8 @@ type Player struct {
 	Direction   PlayerDirection
 	texture     *sdl.Texture
 	drawTexture bool
+	health      int
+	dying       bool
 
 	teleporting      bool
 	teleportCooldown float32
@@ -49,6 +51,7 @@ func NewPlayer(renderer *sdl.Renderer, me bool, texturePath string) *Player {
 	}
 	player := &Player{
 		me:          me,
+		health:      100,
 		texture:     texture,
 		drawTexture: true,
 	}
@@ -82,7 +85,7 @@ func (p *Player) updateTeleportRect(camera *Camera) {
 }
 
 func (p *Player) Teleport(x, y float32) bool {
-	if p.teleporting || p.teleportCooldown > 0.0 {
+	if p.teleporting || p.teleportCooldown > 0.0 || !p.IsAlive() {
 		return false
 	}
 	if x < 0 || x > 1280 || y < 0 || y > 1280 {
@@ -98,21 +101,41 @@ func (p *Player) Teleport(x, y float32) bool {
 	return true
 }
 
+func (p *Player) IsAlive() bool {
+	return p.health > 0
+}
+
+func (p *Player) TakeDamage(damage int) {
+	p.health -= damage
+	if p.health <= 0 {
+		p.dying = true
+		p.teleportRectW = 1.0
+		p.teleportRectH = 1.0
+		p.teleportAlpha = 255.0
+	}
+}
+
+func (p *Player) Kill() {
+	p.TakeDamage(100)
+}
+
 func (p *Player) Update(deltaTime float32) {
-	if p.teleporting {
+	if p.teleporting || p.dying {
 		if p.teleportAlpha <= 0.0 {
-			if p.Position.X != p.teleportPosition.X || p.Position.Y != p.teleportPosition.Y {
-				p.Position.X = p.teleportPosition.X
-				p.Position.Y = p.teleportPosition.Y
-				p.teleportRectW = 1.0
-				p.teleportRectH = 1.0
-				p.teleportAlpha = 255.0
-			} else {
-				p.teleporting = false
+			if p.teleporting {
+				if p.Position.X != p.teleportPosition.X || p.Position.Y != p.teleportPosition.Y {
+					p.Position.X = p.teleportPosition.X
+					p.Position.Y = p.teleportPosition.Y
+					p.teleportRectW = 1.0
+					p.teleportRectH = 1.0
+					p.teleportAlpha = 255.0
+				} else {
+					p.teleporting = false
+				}
 			}
 		} else if p.teleportRect.W >= PLAYER_WIDTH {
 			p.drawTexture = false
-			if p.Position.X == p.teleportPosition.X && p.Position.Y == p.teleportPosition.Y {
+			if p.teleporting && p.Position.X == p.teleportPosition.X && p.Position.Y == p.teleportPosition.Y {
 				p.drawTexture = true
 			}
 			p.teleportAlpha -= deltaTime * PLAYER_TELEPORT_SPEED
@@ -138,7 +161,7 @@ func (p *Player) Draw(renderer *sdl.Renderer, camera *Camera) {
 		}
 		renderer.Copy(p.texture, nil, &rect)
 	}
-	if p.teleporting {
+	if p.teleporting || p.dying {
 		p.updateTeleportRect(camera)
 		renderer.SetDrawBlendMode(sdl.BLENDMODE_BLEND)
 		renderer.SetDrawColor(255, 255, 255, uint8(p.teleportAlpha))

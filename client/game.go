@@ -105,7 +105,14 @@ func (g *Game) handleMessage(msg NetworkMessage, data interface{}) {
 }
 
 func (g *Game) handleKeyDown(event *sdl.KeyDownEvent) {
-	if g.state == STATE_PLAYING && g.localPlayer != nil && !g.localPlayer.IsTeleporting() {
+	if g.state == STATE_PLAYING && g.localPlayer != nil {
+		if event.Keysym.Sym == sdl.K_F12 {
+			g.localPlayer.Kill()
+			return
+		}
+		if g.localPlayer.IsTeleporting() {
+			return
+		}
 		x := g.localPlayer.Position.X
 		y := g.localPlayer.Position.Y
 		switch event.Keysym.Sym {
