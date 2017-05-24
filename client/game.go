@@ -8,6 +8,7 @@ import (
 
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/sdl_image"
+	"github.com/veandco/go-sdl2/sdl_ttf"
 )
 
 const (
@@ -59,6 +60,8 @@ type Game struct {
 	mapTexture   *sdl.Texture
 	camera       Camera
 	startMessage MessageGameStart
+	theCode      *TheCode
+	showTheCode  bool
 }
 
 func NewGame() *Game {
@@ -110,6 +113,9 @@ func (g *Game) handleKeyDown(event *sdl.KeyDownEvent) {
 	if g.state == STATE_PLAYING && g.localPlayer != nil {
 		if event.Keysym.Sym == sdl.K_F12 {
 			g.localPlayer.Kill()
+			return
+		} else if event.Keysym.Sym == sdl.K_F1 {
+			g.showTheCode = !g.showTheCode
 			return
 		}
 		if g.localPlayer.IsTeleporting() {
@@ -189,6 +195,7 @@ func (g *Game) run() {
 	g.running = true
 
 	sdl.Init(sdl.INIT_EVERYTHING)
+	ttf.Init()
 
 	var err error
 	var windowFlags uint32 /*= sdl.WINDOW_FULLSCREEN_DESKTOP*/
@@ -265,10 +272,19 @@ func (g *Game) run() {
 			if g.localPlayer != nil {
 				g.localPlayer.Draw(g.renderer, &g.camera)
 			}
+			if g.theCode == nil {
+				g.theCode = NewTheCode(g.renderer)
+			}
+			if g.theCode != nil && g.showTheCode {
+				g.theCode.Draw(g.renderer, &g.camera)
+			}
 		}
 
 		g.renderer.Present()
 	}
+
+	ttf.Quit()
+	sdl.Quit()
 }
 
 func (g *Game) Connect(address string) {
