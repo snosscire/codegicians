@@ -40,7 +40,7 @@ type Player struct {
 
 	teleporting      bool
 	teleportCooldown float32
-	teleportPosition Position
+	TeleportPosition Position
 	teleportAlpha    float32
 	teleportRect     sdl.Rect
 	teleportRectW    float32
@@ -96,8 +96,8 @@ func (p *Player) Teleport(x, y float32) bool {
 	}
 	p.teleporting = true
 	p.teleportCooldown = PLAYER_TELEPORT_COOLDOWN
-	p.teleportPosition.X = x
-	p.teleportPosition.Y = y
+	p.TeleportPosition.X = x
+	p.TeleportPosition.Y = y
 	p.teleportRectW = 1.0
 	p.teleportRectH = 1.0
 	p.teleportAlpha = 255.0
@@ -127,9 +127,9 @@ func (p *Player) Update(deltaTime float32) {
 	if p.teleporting || p.dying {
 		if p.teleportAlpha <= 0.0 {
 			if p.teleporting {
-				if p.Position.X != p.teleportPosition.X || p.Position.Y != p.teleportPosition.Y {
-					p.Position.X = p.teleportPosition.X
-					p.Position.Y = p.teleportPosition.Y
+				if p.Position.X != p.TeleportPosition.X || p.Position.Y != p.TeleportPosition.Y {
+					p.Position.X = p.TeleportPosition.X
+					p.Position.Y = p.TeleportPosition.Y
 					p.teleportRectW = 1.0
 					p.teleportRectH = 1.0
 					p.teleportAlpha = 255.0
@@ -139,7 +139,7 @@ func (p *Player) Update(deltaTime float32) {
 			}
 		} else if p.teleportRect.W >= PLAYER_WIDTH {
 			p.drawTexture = false
-			if p.teleporting && p.Position.X == p.teleportPosition.X && p.Position.Y == p.teleportPosition.Y {
+			if p.teleporting && p.Position.X == p.TeleportPosition.X && p.Position.Y == p.TeleportPosition.Y {
 				p.drawTexture = true
 			}
 			p.teleportAlpha -= deltaTime * PLAYER_TELEPORT_SPEED

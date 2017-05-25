@@ -5,6 +5,7 @@ import (
 	"encoding/gob"
 	"log"
 	"net"
+	"strconv"
 
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/sdl_image"
@@ -62,6 +63,8 @@ type Game struct {
 	startMessage MessageGameStart
 	theCode      *TheCode
 	showTheCode  bool
+	gKeyPressed  bool
+	nKeyPressed  string
 }
 
 func NewGame() *Game {
@@ -78,6 +81,9 @@ func (g *Game) handleMessage(msg NetworkMessage, data interface{}) {
 		log.Println("Start game")
 		g.startMessage = data.(MessageGameStart)
 		g.state = STATE_PLAYING
+	case MESSAGE_PLAYER_TELEPORT:
+		teleportMsg := data.(*MessagePlayerTeleport)
+		g.otherPlayer.Teleport(teleportMsg.X, teleportMsg.Y)
 	case MESSAGE_PLAYER_MOVE_UP:
 		if g.state == STATE_PLAYING && g.otherPlayer != nil {
 			x := g.otherPlayer.Position.X
@@ -109,6 +115,114 @@ func (g *Game) handleMessage(msg NetworkMessage, data interface{}) {
 	}
 }
 
+func (g *Game) findYPosInCode(y int32) int32 {
+	offset := int32(0)
+	for (y+offset)%64 != 0 {
+		offset += 1
+	}
+	return y + offset
+}
+
+func (g *Game) handleNavigationCommands(event *sdl.KeyDownEvent) bool {
+	match := false
+	switch event.Keysym.Sym {
+	case sdl.K_0:
+		if len(g.nKeyPressed) == 0 { // jump to the start of the line
+			g.localPlayer.Teleport(32, g.localPlayer.Position.Y)
+			match = true
+		} else { // go to line n
+			g.nKeyPressed += "0"
+			g.gKeyPressed = false
+			return true
+		}
+	case sdl.K_1, sdl.K_2, sdl.K_3, sdl.K_5, sdl.K_6, sdl.K_7, sdl.K_8, sdl.K_9:
+		g.nKeyPressed += string(event.Keysym.Sym)
+		g.gKeyPressed = false
+		return true
+	case sdl.K_DOLLAR, sdl.K_4: // jump to the end of the line
+		if event.Keysym.Sym == sdl.K_DOLLAR || event.Keysym.Mod&sdl.KMOD_LSHIFT > 0 || event.Keysym.Mod&sdl.KMOD_RALT > 0 {
+			g.localPlayer.Teleport(1280-32, g.localPlayer.Position.Y)
+			match = true
+		} else {
+			g.nKeyPressed += "4"
+			g.gKeyPressed = false
+			return true
+		}
+	case sdl.K_h: // move to top of screen
+		if event.Keysym.Mod&sdl.KMOD_LSHIFT > 0 || event.Keysym.Mod&sdl.KMOD_RSHIFT > 0 {
+			g.localPlayer.Teleport(g.localPlayer.Position.X, float32(g.findYPosInCode(g.camera.Y)+32))
+			match = true
+		}
+	case sdl.K_l: // move to bottom of screen
+		if event.Keysym.Mod&sdl.KMOD_LSHIFT > 0 || event.Keysym.Mod&sdl.KMOD_RSHIFT > 0 {
+			g.localPlayer.Teleport(g.localPlayer.Position.X, float32(g.findYPosInCode(g.camera.Y+g.camera.H)-32))
+			match = true
+		}
+	case sdl.K_m: // move to middle of screen
+		if event.Keysym.Mod&sdl.KMOD_LSHIFT > 0 || event.Keysym.Mod&sdl.KMOD_RSHIFT > 0 {
+			y := g.camera.Y + (g.camera.H / 2)
+			g.localPlayer.Teleport(g.localPlayer.Position.X, float32(g.findYPosInCode(y)-32))
+			match = true
+		}
+	case sdl.K_g:
+		if event.Keysym.Mod&sdl.KMOD_LSHIFT > 0 || event.Keysym.Mod&sdl.KMOD_RSHIFT > 0 {
+			if len(g.nKeyPressed) == 0 { // go to the last line of the document
+				g.localPlayer.Teleport(g.localPlayer.Position.X, float32(1280-32))
+				match = true
+			} else { // go to line n
+				line, _ := strconv.Atoi(g.nKeyPressed)
+				if line >= 1 && line <= 20 {
+					line--
+					g.localPlayer.Teleport(g.localPlayer.Position.X, float32((line*64)+32))
+					g.nKeyPressed = ""
+					match = true
+				}
+			}
+		} else {
+			if g.gKeyPressed { // go to the first line of the document
+				g.localPlayer.Teleport(g.localPlayer.Position.X, float32(32))
+				g.gKeyPressed = false
+				match = true
+			} else {
+				g.gKeyPressed = true
+				g.nKeyPressed = ""
+				return true
+			}
+		}
+	case sdl.K_b:
+		if g.theCode != nil {
+			x := g.theCode.PreviousWordAtBeginningMapPosition(g.localPlayer.Position.X, g.localPlayer.Position.Y)
+			g.localPlayer.Teleport(x, g.localPlayer.Position.Y)
+		}
+		match = true
+	case sdl.K_e:
+		if g.theCode != nil {
+			x := g.theCode.NextWordAtEndMapPosition(g.localPlayer.Position.X, g.localPlayer.Position.Y)
+			g.localPlayer.Teleport(x, g.localPlayer.Position.Y)
+		}
+		match = true
+	case sdl.K_w:
+		if g.theCode != nil {
+			x := g.theCode.NextWordAtBeginningMapPosition(g.localPlayer.Position.X, g.localPlayer.Position.Y)
+			g.localPlayer.Teleport(x, g.localPlayer.Position.Y)
+		}
+		match = true
+	case sdl.K_LSHIFT, sdl.K_RSHIFT:
+		return false
+	}
+	if match {
+		teleportMsg := MessagePlayerTeleport{
+			g.localPlayer.TeleportPosition.X,
+			g.localPlayer.TeleportPosition.Y,
+		}
+		g.client.Send(MESSAGE_PLAYER_TELEPORT, &teleportMsg)
+		g.gKeyPressed = false
+		g.nKeyPressed = ""
+		return true
+	}
+	return false
+}
+
 func (g *Game) handleKeyDown(event *sdl.KeyDownEvent) {
 	if g.state == STATE_PLAYING && g.localPlayer != nil {
 		if event.Keysym.Sym == sdl.K_F12 {
@@ -117,6 +231,10 @@ func (g *Game) handleKeyDown(event *sdl.KeyDownEvent) {
 		} else if event.Keysym.Sym == sdl.K_F1 {
 			g.showTheCode = !g.showTheCode
 			return
+		} else {
+			if g.handleNavigationCommands(event) {
+				return
+			}
 		}
 		if g.localPlayer.IsTeleporting() {
 			return

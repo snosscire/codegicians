@@ -16,6 +16,7 @@ type Texture struct {
 }
 
 type TheCode struct {
+	lines    []string
 	textures []*Texture
 }
 
@@ -53,8 +54,71 @@ func NewTheCode(renderer *sdl.Renderer) *TheCode {
 		textures = append(textures, t)
 	}
 	return &TheCode{
+		lines:    lines,
 		textures: textures,
 	}
+}
+
+func (tc *TheCode) PreviousWordAtBeginningMapPosition(x float32, y float32) float32 {
+	line := int32(y / 64)
+	char := int32(x / 32)
+	foundFirstSpace := false
+	foundSecondSpace := false
+	for i := char; i >= 0; i-- {
+		if !foundFirstSpace {
+			if string(tc.lines[line][i]) == " " {
+				foundFirstSpace = true
+				continue
+			}
+		} else if !foundSecondSpace {
+			if string(tc.lines[line][i]) == " " {
+				return float32((i + 1) * 32)
+			} else if i == 0 {
+				return float32(32)
+			}
+		}
+	}
+	return x
+}
+
+func (tc *TheCode) NextWordAtBeginningMapPosition(x float32, y float32) float32 {
+	line := int32(y / 64)
+	char := int32(x / 32)
+	foundSpace := false
+	for i := char; i < int32(len(tc.lines[line])); i++ {
+		if !foundSpace {
+			if string(tc.lines[line][i]) == " " {
+				foundSpace = true
+				continue
+			}
+		} else {
+			x = float32(i * 32)
+			break
+		}
+	}
+	return x
+}
+
+func (tc *TheCode) NextWordAtEndMapPosition(x float32, y float32) float32 {
+	line := int32(y / 64)
+	char := int32(x / 32)
+	foundFirstSpace := false
+	foundSecondSpace := false
+	for i := char; i < int32(len(tc.lines[line])); i++ {
+		if !foundFirstSpace {
+			if string(tc.lines[line][i]) == " " {
+				foundFirstSpace = true
+				continue
+			}
+		} else if !foundSecondSpace {
+			if string(tc.lines[line][i]) == " " {
+				return float32((i - 1) * 32)
+			} else if i == int32(len(tc.lines[line])-1) {
+				return float32(i * 32)
+			}
+		}
+	}
+	return x
 }
 
 func (tc *TheCode) Draw(renderer *sdl.Renderer, camera *Camera) {

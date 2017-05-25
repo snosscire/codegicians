@@ -23,7 +23,7 @@ func (g *Game) handlePlayerDisconnect(client *Client) {
 	log.Printf("(Game) Player disconnected.\n")
 }
 
-func (g *Game) sendToAllExcept(msg byte, data interface{}, client *Client) {
+func (g *Game) sendToAllExcept(msg byte, client *Client) {
 	for _, player := range g.players {
 		if player.ClientId() != client.Id() {
 			player.Send(msg)
@@ -31,11 +31,21 @@ func (g *Game) sendToAllExcept(msg byte, data interface{}, client *Client) {
 	}
 }
 
+func (g *Game) sendDataToAllExcept(msg byte, data interface{}, client *Client) {
+	for _, player := range g.players {
+		if player.ClientId() != client.Id() {
+			player.SendData(msg, data)
+		}
+	}
+}
+
 func (g *Game) handlePlayerMessage(client *Client, msg byte, data interface{}) {
-	log.Printf("(Game) Received player message: %d\n", msg)
+	log.Printf("(Game) Received player message: %s\n", string(msg))
 	switch msg {
 	case 'u', 'd', 'l', 'r':
-		g.sendToAllExcept(msg, data, client)
+		g.sendToAllExcept(msg, client)
+	case 't':
+		g.sendDataToAllExcept(msg, data, client)
 	}
 }
 

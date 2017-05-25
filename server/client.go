@@ -23,7 +23,7 @@ func NewClient(conn net.Conn, id int) *Client {
 	client.id = id
 	client.connection = conn
 	client.connectionReadWriter = bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
-	client.messageDecoder = gob.NewDecoder(conn)
+	client.messageDecoder = gob.NewDecoder(client.connectionReadWriter)
 	client.messageEncoder = gob.NewEncoder(client.connectionReadWriter)
 	return client
 }
@@ -51,10 +51,20 @@ func (c *Client) handleDisconnect() {
 }
 
 func (c *Client) handleMessage(msg byte) {
-	log.Printf("Command: %d\n", msg)
-	var data interface{}
+	log.Printf("Command: %s\n", string(msg))
 	if c.messageHandler != nil {
-		c.messageHandler(c, msg, data)
+		if msg == 't' {
+			var data MessagePlayerTeleport
+			err := c.messageDecoder.Decode(&data)
+			if err != nil {
+				log.Printf("%v\n", err)
+				return
+			}
+			c.messageHandler(c, msg, data)
+		} else {
+			var data interface{}
+			c.messageHandler(c, msg, data)
+		}
 	}
 }
 

@@ -60,6 +60,15 @@ func (c *Client) Read() {
 			}
 			log.Printf("%v\n", data)
 			c.handleMessage(msg, data)
+		case MESSAGE_PLAYER_TELEPORT:
+			var data MessagePlayerTeleport
+			err := c.messageDecoder.Decode(&data)
+			if err != nil {
+				log.Printf("%v\n", err)
+				continue
+			}
+			log.Printf("%v\n", data)
+			c.handleMessage(msg, &data)
 		default:
 			c.handleMessage(msg, nil)
 		}
