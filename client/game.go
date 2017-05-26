@@ -105,6 +105,18 @@ type Game struct {
 	currentTargetWordsTexture       *sdl.Texture
 	currentTargetWordsTextureWidth  int32
 	currentTargetWordsTextureHeight int32
+
+	nameTexture            *sdl.Texture
+	nameTextureWidth       int32
+	nameTextureHeight      int32
+	menuStartTexture       *sdl.Texture
+	menuStartTextureWidth  int32
+	menuStartTextureHeight int32
+	menuQuitTexture        *sdl.Texture
+	menuQuitTextureWidth   int32
+	menuQuitTextureHeight  int32
+	menuItemFont           *ttf.Font
+	selectedMenuItem       int
 }
 
 func NewGame() *Game {
@@ -363,9 +375,67 @@ func (g *Game) endScreen(winner bool) {
 }
 
 func (g *Game) handleKeyDown(event *sdl.KeyDownEvent) {
+	if g.state == STATE_CONNECTING || g.state == STATE_STARTING {
+		if event.Keysym.Sym == sdl.K_ESCAPE {
+			g.client = nil
+			g.state = STATE_MAINMENU
+		}
+		return
+	}
+	if g.state == STATE_MAINMENU {
+		if event.Keysym.Sym == sdl.K_UP || event.Keysym.Sym == sdl.K_DOWN {
+			color := sdl.Color{255, 255, 255, 255}
+			if g.selectedMenuItem == 0 {
+				g.selectedMenuItem = 1
+				g.updateFontTexture(
+					"Start",
+					g.menuItemFont,
+					&g.menuStartTexture,
+					&g.menuStartTextureWidth,
+					&g.menuStartTextureHeight,
+					color)
+				g.updateFontTexture(
+					"*Quit*",
+					g.menuItemFont,
+					&g.menuQuitTexture,
+					&g.menuQuitTextureWidth,
+					&g.menuQuitTextureHeight,
+					color)
+			} else {
+				g.selectedMenuItem = 0
+				g.updateFontTexture(
+					"*Start*",
+					g.menuItemFont,
+					&g.menuStartTexture,
+					&g.menuStartTextureWidth,
+					&g.menuStartTextureHeight,
+					color)
+				g.updateFontTexture(
+					"Quit",
+					g.menuItemFont,
+					&g.menuQuitTexture,
+					&g.menuQuitTextureWidth,
+					&g.menuQuitTextureHeight,
+					color)
+			}
+		} else if event.Keysym.Sym == sdl.K_RETURN {
+			if g.selectedMenuItem == 1 {
+				g.running = false
+			} else if g.selectedMenuItem == 0 {
+				address, err := ioutil.ReadFile("config.txt")
+				if err != nil {
+					log.Fatalf("%v\n", err)
+					return
+				}
+				g.Connect(strings.Trim(strings.Trim(strings.Trim(string(address), "\n"), "\r"), " "))
+			}
+		}
+		return
+	}
 	if g.state == STATE_PLAYING && g.showEndScreen {
 		if event.Keysym.Sym == sdl.K_ESCAPE {
-			g.running = false
+			g.state = STATE_MAINMENU
+			g.client = nil
 		}
 		return
 	}
@@ -574,6 +644,17 @@ func (g *Game) createWinLoseTextures() {
 	g.updateFontTexture("You lost!", g.endScreenFont, &g.loseMsgTexture, &g.loseMsgTextureWidth, &g.loseMsgTextureHeight, color)
 }
 
+func (g *Game) createMenu() {
+	headlineFont, err := ttf.OpenFont("data/font/Share-TechMono.ttf", 120)
+	if err != nil {
+		panic(err)
+	}
+	color := sdl.Color{255, 255, 255, 255}
+	g.updateFontTexture("CODEGICIANS", headlineFont, &g.nameTexture, &g.nameTextureWidth, &g.nameTextureHeight, color)
+	g.updateFontTexture("*Start*", g.menuItemFont, &g.menuStartTexture, &g.menuStartTextureWidth, &g.menuStartTextureHeight, color)
+	g.updateFontTexture("Quit", g.menuItemFont, &g.menuQuitTexture, &g.menuQuitTextureWidth, &g.menuQuitTextureHeight, color)
+}
+
 func (g *Game) run() {
 	if g.running {
 		return
@@ -585,12 +666,12 @@ func (g *Game) run() {
 	ttf.Init()
 
 	var err error
-	var windowFlags uint32 /*= sdl.WINDOW_FULLSCREEN_DESKTOP*/
+	var windowFlags uint32 = sdl.WINDOW_FULLSCREEN_DESKTOP
 
 	g.window, err = sdl.CreateWindow("Codegicians",
 		sdl.WINDOWPOS_UNDEFINED,
 		sdl.WINDOWPOS_UNDEFINED,
-		1280, 720,
+		0 /*1280*/, 0, /*720*/
 		windowFlags)
 	if err != nil {
 		panic(err)
@@ -603,7 +684,7 @@ func (g *Game) run() {
 	}
 	defer g.renderer.Destroy()
 
-	//g.renderer.SetLogicalSize(SCREEN_WIDTH, SCREEN_HEIGHT)
+	g.renderer.SetLogicalSize(SCREEN_WIDTH, SCREEN_HEIGHT)
 
 	g.insertModeFont, err = ttf.OpenFont("data/font/Share-TechMono.ttf", 16)
 	if err != nil {
@@ -613,8 +694,13 @@ func (g *Game) run() {
 	if err != nil {
 		panic(err)
 	}
+	g.menuItemFont, err = ttf.OpenFont("data/font/Share-TechMono.ttf", 60)
+	if err != nil {
+		panic(err)
+	}
 
 	g.createWinLoseTextures()
+	g.createMenu()
 
 	currentTime := sdl.GetTicks()
 	lastTime := currentTime
@@ -640,7 +726,26 @@ func (g *Game) run() {
 		g.renderer.SetDrawColor(0, 0, 0, 255)
 		g.renderer.Clear()
 
-		if g.state == STATE_PLAYING {
+		if g.state == STATE_MAINMENU {
+			g.renderer.Copy(g.nameTexture, nil, &sdl.Rect{
+				X: (SCREEN_WIDTH / 2) - (g.nameTextureWidth / 2),
+				Y: g.nameTextureHeight,
+				W: g.nameTextureWidth,
+				H: g.nameTextureHeight,
+			})
+			g.renderer.Copy(g.menuStartTexture, nil, &sdl.Rect{
+				X: (SCREEN_WIDTH / 2) - (g.menuStartTextureWidth / 2),
+				Y: (SCREEN_HEIGHT / 2) - (g.menuStartTextureHeight / 2),
+				W: g.menuStartTextureWidth,
+				H: g.menuStartTextureHeight,
+			})
+			g.renderer.Copy(g.menuQuitTexture, nil, &sdl.Rect{
+				X: (SCREEN_WIDTH / 2) - (g.menuQuitTextureWidth / 2),
+				Y: (SCREEN_HEIGHT / 2) + (g.menuQuitTextureHeight / 2),
+				W: g.menuQuitTextureWidth,
+				H: g.menuQuitTextureHeight,
+			})
+		} else if g.state == STATE_PLAYING {
 			if g.currentWordTexture == nil {
 				g.updateCurrentWordTexture()
 			}
