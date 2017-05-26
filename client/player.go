@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log"
+
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/sdl_image"
 )
@@ -28,6 +30,7 @@ type PlayerDirection struct {
 }
 
 type Player struct {
+	client        *Client
 	me            bool
 	StartPosition Position
 	Position      Position
@@ -45,6 +48,8 @@ type Player struct {
 	teleportRect     sdl.Rect
 	teleportRectW    float32
 	teleportRectH    float32
+
+	OnPlayerDie func()
 }
 
 func NewPlayer(renderer *sdl.Renderer, me bool, texturePath string) *Player {
@@ -65,7 +70,7 @@ func (p *Player) IsTeleporting() bool {
 	return p.teleporting
 }
 
-func (p *Player) screenPosition(camera *Camera) (int32, int32) {
+func (p *Player) ScreenPosition(camera *Camera) (int32, int32) {
 	var x int32 = int32(p.Position.X) - camera.X - (PLAYER_WIDTH / 2)
 	var y int32 = int32(p.Position.Y) - camera.Y - (PLAYER_HEIGHT / 2)
 	if p.me {
@@ -80,7 +85,7 @@ func (p *Player) screenPosition(camera *Camera) (int32, int32) {
 }
 
 func (p *Player) updateTeleportRect(camera *Camera) {
-	x, y := p.screenPosition(camera)
+	x, y := p.ScreenPosition(camera)
 	p.teleportRect.X = x + (PLAYER_WIDTH / 2) - (p.teleportRect.W / 2)
 	p.teleportRect.Y = y + (PLAYER_HEIGHT / 2) - (p.teleportRect.H / 2)
 	p.teleportRect.W = int32(p.teleportRectW)
@@ -108,19 +113,38 @@ func (p *Player) IsAlive() bool {
 	return p.health > 0
 }
 
-func (p *Player) TakeDamage(damage int) {
-	p.health -= damage
-	if p.health <= 0 {
-		p.dying = true
-		p.teleportRectW = 1.0
-		p.teleportRectH = 1.0
-		p.teleportAlpha = 255.0
-		p.respawnTime = PLAYER_RESPAWN_TIME
+func (p *Player) TakeDamage(amount int, client *Client) {
+	if p.me {
+		p.health -= amount
+		if p.health <= 0 {
+			p.Die()
+			client.Send(MESSAGE_PLAYER_DIE, nil)
+			p.client = client
+			if p.OnPlayerDie != nil {
+				p.OnPlayerDie()
+			}
+		}
+	} else {
+		damageMsg := MessagePlayerDamage{
+			Amount: amount,
+		}
+		client.Send(MESSAGE_PLAYER_DAMAGE, &damageMsg)
 	}
 }
 
-func (p *Player) Kill() {
-	p.TakeDamage(100)
+func (p *Player) Die() {
+	p.dying = true
+	p.teleportRectW = 1.0
+	p.teleportRectH = 1.0
+	p.teleportAlpha = 255.0
+	p.respawnTime = PLAYER_RESPAWN_TIME
+}
+
+func (p *Player) Respawn(x float32, y float32) {
+	p.health = 100
+	p.drawTexture = true
+	p.Position.X = x
+	p.Position.Y = y
 }
 
 func (p *Player) Update(deltaTime float32) {
@@ -152,19 +176,22 @@ func (p *Player) Update(deltaTime float32) {
 	if p.teleportCooldown > 0.0 {
 		p.teleportCooldown -= deltaTime
 	}
-	if !p.IsAlive() {
+	if p.me && !p.IsAlive() {
 		p.respawnTime -= deltaTime
 		if p.respawnTime <= 0.0 {
-			p.health = 100
-			p.drawTexture = true
-			p.Position.X = p.StartPosition.X
-			p.Position.Y = p.StartPosition.Y
+			p.Respawn(p.StartPosition.X, p.StartPosition.Y)
+			respawnMsg := MessagePlayerRespawn{
+				X: p.StartPosition.X,
+				Y: p.StartPosition.Y,
+			}
+			log.Printf("send respawn: %v\n", respawnMsg)
+			p.client.Send(MESSAGE_PLAYER_RESPAWN, &respawnMsg)
 		}
 	}
 }
 
 func (p *Player) Draw(renderer *sdl.Renderer, camera *Camera) {
-	x, y := p.screenPosition(camera)
+	x, y := p.ScreenPosition(camera)
 	if p.drawTexture {
 		rect := sdl.Rect{
 			x,

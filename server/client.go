@@ -61,6 +61,22 @@ func (c *Client) handleMessage(msg byte) {
 				return
 			}
 			c.messageHandler(c, msg, data)
+		} else if msg == 'a' {
+			var data MessagePlayerDamage
+			err := c.messageDecoder.Decode(&data)
+			if err != nil {
+				log.Printf("%v\n", err)
+				return
+			}
+			c.messageHandler(c, msg, data)
+		} else if msg == 's' {
+			var data MessagePlayerRespawn
+			err := c.messageDecoder.Decode(&data)
+			if err != nil {
+				log.Printf("%v\n", err)
+				return
+			}
+			c.messageHandler(c, msg, data)
 		} else {
 			var data interface{}
 			c.messageHandler(c, msg, data)
@@ -100,7 +116,7 @@ func (c *Client) sendData(msg byte, data interface{}) {
 	if err != nil {
 		return
 	}
-	log.Printf("data: %v", data)
+	log.Printf("sendData: %v", data)
 	err = c.messageEncoder.Encode(data)
 	if err != nil {
 		log.Printf("%v\n", err)

@@ -6,6 +6,9 @@ import (
 	"io"
 	"log"
 	"net"
+	"unsafe"
+
+	"github.com/veandco/go-sdl2/sdl"
 )
 
 type Client struct {
@@ -32,7 +35,7 @@ func (c *Client) handleDisconnect() {
 }
 
 func (c *Client) handleMessage(msg byte, data interface{}) {
-	log.Printf("Command: %d\n", msg)
+	log.Printf("Command: %s\n", string(msg))
 	if c.messageHandler != nil {
 		c.messageHandler(NetworkMessage(msg), data)
 	}
@@ -59,7 +62,12 @@ func (c *Client) Read() {
 				continue
 			}
 			log.Printf("%v\n", data)
-			c.handleMessage(msg, data)
+			event := sdl.UserEvent{
+				Type:  sdl.USEREVENT,
+				Code:  int32(MESSAGE_GAME_START),
+				Data1: unsafe.Pointer(&data),
+			}
+			sdl.PushEvent(&event)
 		case MESSAGE_PLAYER_TELEPORT:
 			var data MessagePlayerTeleport
 			err := c.messageDecoder.Decode(&data)
@@ -68,9 +76,46 @@ func (c *Client) Read() {
 				continue
 			}
 			log.Printf("%v\n", data)
-			c.handleMessage(msg, &data)
+			event := sdl.UserEvent{
+				Type:  sdl.USEREVENT,
+				Code:  int32(MESSAGE_PLAYER_TELEPORT),
+				Data1: unsafe.Pointer(&data),
+			}
+			sdl.PushEvent(&event)
+		case MESSAGE_PLAYER_DAMAGE:
+			var data MessagePlayerDamage
+			err := c.messageDecoder.Decode(&data)
+			if err != nil {
+				log.Printf("%v\n", err)
+				continue
+			}
+			log.Printf("%v\n", data)
+			event := sdl.UserEvent{
+				Type:  sdl.USEREVENT,
+				Code:  int32(MESSAGE_PLAYER_DAMAGE),
+				Data1: unsafe.Pointer(&data),
+			}
+			sdl.PushEvent(&event)
+		case MESSAGE_PLAYER_RESPAWN:
+			var data MessagePlayerRespawn
+			err := c.messageDecoder.Decode(&data)
+			if err != nil {
+				log.Printf("%v\n", err)
+				continue
+			}
+			log.Printf("%v\n", data)
+			event := sdl.UserEvent{
+				Type:  sdl.USEREVENT,
+				Code:  int32(MESSAGE_PLAYER_RESPAWN),
+				Data1: unsafe.Pointer(&data),
+			}
+			sdl.PushEvent(&event)
 		default:
-			c.handleMessage(msg, nil)
+			event := sdl.UserEvent{
+				Type: sdl.USEREVENT,
+				Code: int32(msg),
+			}
+			sdl.PushEvent(&event)
 		}
 	}
 }

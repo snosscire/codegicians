@@ -64,7 +64,7 @@ func (tc *TheCode) PreviousWordAtBeginningMapPosition(x float32, y float32) floa
 	char := int32(x / 32)
 	foundFirstSpace := false
 	foundSecondSpace := false
-	for i := char; i >= 0; i-- {
+	for i := char; i >= 0 && i < int32(len(tc.lines[line])); i-- {
 		if !foundFirstSpace {
 			if string(tc.lines[line][i]) == " " {
 				foundFirstSpace = true

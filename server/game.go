@@ -42,9 +42,9 @@ func (g *Game) sendDataToAllExcept(msg byte, data interface{}, client *Client) {
 func (g *Game) handlePlayerMessage(client *Client, msg byte, data interface{}) {
 	log.Printf("(Game) Received player message: %s\n", string(msg))
 	switch msg {
-	case 'u', 'd', 'l', 'r':
+	case 'u', 'd', 'l', 'r', 'k':
 		g.sendToAllExcept(msg, client)
-	case 't':
+	case 't', 'a', 's':
 		g.sendDataToAllExcept(msg, data, client)
 	}
 }
