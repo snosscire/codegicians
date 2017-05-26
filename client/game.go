@@ -465,11 +465,17 @@ func (g *Game) handleKeyUp(event *sdl.KeyUpEvent) {
 }
 
 func (g *Game) handleUserEvent(event *sdl.UserEvent) {
+	if g.state == STATE_PLAYING && g.showEndScreen {
+		return
+	}
 	switch NetworkMessage(event.Code) {
 	case MESSAGE_GAME_START:
 		log.Println("Event: Start game")
 		g.startMessage = (*MessageGameStart)(event.Data1)
 		g.state = STATE_PLAYING
+	case MESSAGE_GAME_END:
+		log.Println("Event: Game end")
+		g.endScreen(false)
 	case MESSAGE_PLAYER_TELEPORT:
 		g.setTarget(nil)
 		teleportMsg := (*MessagePlayerTeleport)(event.Data1)
@@ -480,6 +486,11 @@ func (g *Game) handleUserEvent(event *sdl.UserEvent) {
 	case MESSAGE_PLAYER_DIE:
 		g.setTarget(nil)
 		g.otherPlayer.Die()
+		g.localPlayer.Kills++
+		if g.localPlayer.Kills >= 1 {
+			g.client.Send(MESSAGE_GAME_END, nil)
+			g.endScreen(true)
+		}
 	case MESSAGE_PLAYER_RESPAWN:
 		respawnMsg := (*MessagePlayerRespawn)(event.Data1)
 		g.otherPlayer.Respawn(respawnMsg.X, respawnMsg.Y)
@@ -560,7 +571,7 @@ func (g *Game) updateFontTexture(text string, font *ttf.Font, texture **sdl.Text
 func (g *Game) createWinLoseTextures() {
 	color := sdl.Color{255, 255, 255, 255}
 	g.updateFontTexture("You won!", g.endScreenFont, &g.winMsgTexture, &g.winMsgTextureWidth, &g.winMsgTextureHeight, color)
-	g.updateFontTexture("You lost!", g.endScreenFont, &g.loseMsgTexture, &g.loseMsgTextureWidth, &g.winMsgTextureHeight, color)
+	g.updateFontTexture("You lost!", g.endScreenFont, &g.loseMsgTexture, &g.loseMsgTextureWidth, &g.loseMsgTextureHeight, color)
 }
 
 func (g *Game) run() {

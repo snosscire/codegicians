@@ -53,6 +53,7 @@ func (c *Client) Read() {
 			c.handleDisconnect()
 			return
 		}
+		log.Printf("Received: %s\n", string(msg))
 		switch NetworkMessage(msg) {
 		case MESSAGE_GAME_START:
 			var data MessageGameStart

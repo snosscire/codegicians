@@ -2,6 +2,7 @@ package main
 
 const (
 	MESSAGE_GAME_START        = '1'
+	MESSAGE_GAME_END          = '3'
 	MESSAGE_PLAYER_TELEPORT   = 't'
 	MESSAGE_PLAYER_DAMAGE     = 'a'
 	MESSAGE_PLAYER_RESPAWN    = 's'

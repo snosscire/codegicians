@@ -40,6 +40,7 @@ type Player struct {
 	health        int
 	dying         bool
 	respawnTime   float32
+	Kills         uint
 
 	teleporting      bool
 	teleportCooldown float32
