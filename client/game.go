@@ -84,6 +84,16 @@ type Game struct {
 	nKeyPressed  string
 	mode         GameMode
 
+	endScreenFont        *ttf.Font
+	showEndScreen        bool
+	localPlayerWon       bool
+	winMsgTexture        *sdl.Texture
+	winMsgTextureWidth   int32
+	winMsgTextureHeight  int32
+	loseMsgTexture       *sdl.Texture
+	loseMsgTextureWidth  int32
+	loseMsgTextureHeight int32
+
 	targetWords                     []string
 	insertModeFont                  *ttf.Font
 	currentWord                     string
@@ -346,7 +356,19 @@ func (g *Game) handleInsertMode(event *sdl.KeyDownEvent) {
 	}
 }
 
+func (g *Game) endScreen(winner bool) {
+	g.showTheCode = false
+	g.showEndScreen = true
+	g.localPlayerWon = winner
+}
+
 func (g *Game) handleKeyDown(event *sdl.KeyDownEvent) {
+	if g.state == STATE_PLAYING && g.showEndScreen {
+		if event.Keysym.Sym == sdl.K_ESCAPE {
+			g.running = false
+		}
+		return
+	}
 	if g.state == STATE_PLAYING && g.localPlayer != nil {
 		currentMode := g.mode
 		if currentMode == MODE_INSERT {
@@ -461,6 +483,8 @@ func (g *Game) handleUserEvent(event *sdl.UserEvent) {
 	case MESSAGE_PLAYER_RESPAWN:
 		respawnMsg := (*MessagePlayerRespawn)(event.Data1)
 		g.otherPlayer.Respawn(respawnMsg.X, respawnMsg.Y)
+	case MESSAGE_PLAYER_DISCONNECT:
+		g.endScreen(true)
 	case MESSAGE_PLAYER_MOVE_UP:
 		if g.state == STATE_PLAYING && g.otherPlayer != nil {
 			x := g.otherPlayer.Position.X
@@ -511,6 +535,34 @@ func (g *Game) handleInput() {
 	}
 }
 
+func (g *Game) updateFontTexture(text string, font *ttf.Font, texture **sdl.Texture, width *int32, height *int32, color sdl.Color) {
+	if texture != nil {
+		t := *texture
+		t.Destroy()
+		*texture = nil
+		*width = 0
+		*height = 0
+	}
+	surface, err := font.RenderUTF8_Blended(text, color)
+	if err == nil {
+		w := surface.W
+		h := surface.H
+		t, err := g.renderer.CreateTextureFromSurface(surface)
+		surface.Free()
+		if err == nil {
+			*texture = t
+			*width = w
+			*height = h
+		}
+	}
+}
+
+func (g *Game) createWinLoseTextures() {
+	color := sdl.Color{255, 255, 255, 255}
+	g.updateFontTexture("You won!", g.endScreenFont, &g.winMsgTexture, &g.winMsgTextureWidth, &g.winMsgTextureHeight, color)
+	g.updateFontTexture("You lost!", g.endScreenFont, &g.loseMsgTexture, &g.loseMsgTextureWidth, &g.winMsgTextureHeight, color)
+}
+
 func (g *Game) run() {
 	if g.running {
 		return
@@ -546,6 +598,12 @@ func (g *Game) run() {
 	if err != nil {
 		panic(err)
 	}
+	g.endScreenFont, err = ttf.OpenFont("data/font/Share-TechMono.ttf", 70)
+	if err != nil {
+		panic(err)
+	}
+
+	g.createWinLoseTextures()
 
 	currentTime := sdl.GetTicks()
 	lastTime := currentTime
@@ -623,6 +681,23 @@ func (g *Game) run() {
 			}
 			if g.mode == MODE_INSERT {
 				g.drawInsertMode()
+			}
+			if g.showEndScreen {
+				if g.localPlayerWon {
+					g.renderer.Copy(g.winMsgTexture, nil, &sdl.Rect{
+						X: (SCREEN_WIDTH / 2) - (g.winMsgTextureWidth / 2),
+						Y: (SCREEN_HEIGHT / 2) - (g.winMsgTextureHeight / 2),
+						W: g.winMsgTextureWidth,
+						H: g.winMsgTextureHeight,
+					})
+				} else {
+					g.renderer.Copy(g.loseMsgTexture, nil, &sdl.Rect{
+						X: (SCREEN_WIDTH / 2) - (g.loseMsgTextureWidth / 2),
+						Y: (SCREEN_HEIGHT / 2) - (g.loseMsgTextureHeight / 2),
+						W: g.loseMsgTextureWidth,
+						H: g.loseMsgTextureHeight,
+					})
+				}
 			}
 		}
 

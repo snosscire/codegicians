@@ -1,10 +1,11 @@
 package main
 
 const (
-	MESSAGE_GAME_START      = '1'
-	MESSAGE_PLAYER_TELEPORT = 't'
-	MESSAGE_PLAYER_DAMAGE   = 'a'
-	MESSAGE_PLAYER_RESPAWN  = 's'
+	MESSAGE_GAME_START        = '1'
+	MESSAGE_PLAYER_TELEPORT   = 't'
+	MESSAGE_PLAYER_DAMAGE     = 'a'
+	MESSAGE_PLAYER_RESPAWN    = 's'
+	MESSAGE_PLAYER_DISCONNECT = '2'
 )
 
 type MessageGameStart struct {

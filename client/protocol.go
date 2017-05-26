@@ -12,6 +12,7 @@ const (
 	MESSAGE_PLAYER_DAMAGE     NetworkMessage = 'a'
 	MESSAGE_PLAYER_DIE        NetworkMessage = 'k'
 	MESSAGE_PLAYER_RESPAWN    NetworkMessage = 's'
+	MESSAGE_PLAYER_DISCONNECT NetworkMessage = '2'
 )
 
 type MessageGameStart struct {

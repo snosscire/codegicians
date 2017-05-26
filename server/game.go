@@ -21,6 +21,7 @@ func NewGame(clients []*Client) *Game {
 
 func (g *Game) handlePlayerDisconnect(client *Client) {
 	log.Printf("(Game) Player disconnected.\n")
+	g.sendToAllExcept(MESSAGE_PLAYER_DISCONNECT, client)
 }
 
 func (g *Game) sendToAllExcept(msg byte, client *Client) {
