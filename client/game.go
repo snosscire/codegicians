@@ -455,6 +455,10 @@ func (g *Game) handleKeyDown(event *sdl.KeyDownEvent) {
 			if event.Keysym.Sym == sdl.K_i || event.Keysym.Sym == sdl.K_INSERT {
 				g.mode = MODE_INSERT
 				return
+			} else if event.Keysym.Sym == sdl.K_ESCAPE {
+				g.state = STATE_MAINMENU
+				g.client = nil
+				return
 			}
 		}
 		if event.Keysym.Sym == sdl.K_F12 {
@@ -560,7 +564,7 @@ func (g *Game) handleUserEvent(event *sdl.UserEvent) {
 		g.setTarget(nil)
 		g.otherPlayer.Die()
 		g.localPlayer.Kills++
-		if g.localPlayer.Kills >= 1 {
+		if g.localPlayer.Kills >= 10 {
 			g.client.Send(MESSAGE_GAME_END, nil)
 			g.endScreen(true)
 		}
