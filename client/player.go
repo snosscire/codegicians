@@ -12,9 +12,9 @@ const (
 	PLAYER2_TEXTURE_PATH     string  = "data/player2.png"
 	PLAYER_WIDTH             int32   = 64
 	PLAYER_HEIGHT            int32   = 64
-	PLAYER_TELEPORT_COOLDOWN float32 = 1000.0
+	PLAYER_TELEPORT_COOLDOWN float32 = 500.0
 	PLAYER_TELEPORT_SPEED    float32 = 0.5
-	PLAYER_RESPAWN_TIME      float32 = 5000.0
+	PLAYER_RESPAWN_TIME      float32 = 1000.0
 )
 
 type Position struct {
