@@ -109,6 +109,9 @@ type Game struct {
 	nameTexture            *sdl.Texture
 	nameTextureWidth       int32
 	nameTextureHeight      int32
+	waitTexture            *sdl.Texture
+	waitTextureWidth       int32
+	waitTextureHeight      int32
 	menuStartTexture       *sdl.Texture
 	menuStartTextureWidth  int32
 	menuStartTextureHeight int32
@@ -649,8 +652,13 @@ func (g *Game) createMenu() {
 	if err != nil {
 		panic(err)
 	}
+	waitFont, err := ttf.OpenFont("data/font/Share-TechMono.ttf", 38)
+	if err != nil {
+		panic(err)
+	}
 	color := sdl.Color{255, 255, 255, 255}
 	g.updateFontTexture("CODEGICIANS", headlineFont, &g.nameTexture, &g.nameTextureWidth, &g.nameTextureHeight, color)
+	g.updateFontTexture("Connecting, waiting for other player or problem occurred...", waitFont, &g.waitTexture, &g.waitTextureWidth, &g.waitTextureHeight, color)
 	g.updateFontTexture("*Start*", g.menuItemFont, &g.menuStartTexture, &g.menuStartTextureWidth, &g.menuStartTextureHeight, color)
 	g.updateFontTexture("Quit", g.menuItemFont, &g.menuQuitTexture, &g.menuQuitTextureWidth, &g.menuQuitTextureHeight, color)
 }
@@ -744,6 +752,13 @@ func (g *Game) run() {
 				Y: (SCREEN_HEIGHT / 2) + (g.menuQuitTextureHeight / 2),
 				W: g.menuQuitTextureWidth,
 				H: g.menuQuitTextureHeight,
+			})
+		} else if g.state == STATE_CONNECTING || g.state == STATE_STARTING {
+			g.renderer.Copy(g.waitTexture, nil, &sdl.Rect{
+				X: (SCREEN_WIDTH / 2) - (g.waitTextureWidth / 2),
+				Y: (SCREEN_HEIGHT / 2) - (g.waitTextureHeight / 2),
+				W: g.waitTextureWidth,
+				H: g.waitTextureHeight,
 			})
 		} else if g.state == STATE_PLAYING {
 			if g.currentWordTexture == nil {
