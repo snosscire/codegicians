@@ -115,8 +115,8 @@ func (p *Player) IsAlive() bool {
 }
 
 func (p *Player) TakeDamage(amount int, client *Client) {
+	p.health -= amount
 	if p.me {
-		p.health -= amount
 		if p.health <= 0 {
 			p.Die()
 			client.Send(MESSAGE_PLAYER_DIE, nil)
@@ -134,6 +134,7 @@ func (p *Player) TakeDamage(amount int, client *Client) {
 }
 
 func (p *Player) Die() {
+	p.health = 0
 	p.dying = true
 	p.teleportRectW = 1.0
 	p.teleportRectH = 1.0
@@ -194,6 +195,17 @@ func (p *Player) Update(deltaTime float32) {
 func (p *Player) Draw(renderer *sdl.Renderer, camera *Camera) {
 	x, y := p.ScreenPosition(camera)
 	if p.drawTexture {
+		renderer.SetDrawColor(0, 0, 0, 255)
+		renderer.FillRect(&sdl.Rect{x, y, PLAYER_WIDTH, 8})
+		if p.health > 50 {
+			renderer.SetDrawColor(0, 255, 0, 255)
+		} else if p.health > 25 {
+			renderer.SetDrawColor(255, 255, 0, 255)
+		} else {
+			renderer.SetDrawColor(255, 0, 0, 255)
+		}
+		health := float32(p.health) / 100.0
+		renderer.FillRect(&sdl.Rect{x + 1, y + 1, int32(float32(PLAYER_WIDTH-2) * health), 6})
 		rect := sdl.Rect{
 			x,
 			y,
