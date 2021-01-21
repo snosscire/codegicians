@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
-	"github.com/veandco/go-sdl2/sdl_image"
-	"github.com/veandco/go-sdl2/sdl_ttf"
+	"github.com/veandco/go-sdl2/ttf"
 )
 
 const (
@@ -138,7 +138,7 @@ func (g *Game) findYPosInCode(y int32) int32 {
 	return y + offset
 }
 
-func (g *Game) handleNavigationCommands(event *sdl.KeyDownEvent) bool {
+func (g *Game) handleNavigationCommands(event *sdl.KeyboardEvent) bool {
 	match := false
 	switch event.Keysym.Sym {
 	case sdl.K_0:
@@ -284,7 +284,7 @@ func (g *Game) updateCurrentWordTexture() {
 	//return
 	//}
 	color := sdl.Color{255, 255, 255, 255}
-	surface, err := g.insertModeFont.RenderUTF8_Blended(g.currentWord+"_", color)
+	surface, err := g.insertModeFont.RenderUTF8Blended(g.currentWord+"_", color)
 	if err != nil {
 		log.Printf("%v\n", err)
 		return
@@ -317,7 +317,7 @@ func (g *Game) updateCurrentTargetWords() {
 	targetWords := strings.Join(g.currentTargetWords, " ")
 
 	color := sdl.Color{255, 255, 255, 255}
-	surface, err := g.insertModeFont.RenderUTF8_Blended(targetWords, color)
+	surface, err := g.insertModeFont.RenderUTF8Blended(targetWords, color)
 	if err != nil {
 		log.Printf("%v\n", err)
 		return
@@ -339,7 +339,7 @@ func (g *Game) handleLocalPlayerDie() {
 	g.setTarget(nil)
 }
 
-func (g *Game) handleInsertMode(event *sdl.KeyDownEvent) {
+func (g *Game) handleInsertMode(event *sdl.KeyboardEvent) {
 	if event.Keysym.Sym == sdl.K_BACKSPACE {
 		if len(g.currentWord) > 0 {
 			index := len(g.currentWord) - 1
@@ -377,7 +377,7 @@ func (g *Game) endScreen(winner bool) {
 	g.localPlayerWon = winner
 }
 
-func (g *Game) handleKeyDown(event *sdl.KeyDownEvent) {
+func (g *Game) handleKeyDown(event *sdl.KeyboardEvent) {
 	if g.state == STATE_CONNECTING || g.state == STATE_STARTING {
 		if event.Keysym.Sym == sdl.K_ESCAPE {
 			g.client = nil
@@ -526,7 +526,7 @@ func (g *Game) handleKeyDown(event *sdl.KeyDownEvent) {
 	}
 }
 
-func (g *Game) handleKeyUp(event *sdl.KeyUpEvent) {
+func (g *Game) handleKeyUp(event *sdl.KeyboardEvent) {
 	if g.state == STATE_PLAYING && g.localPlayer != nil {
 		switch event.Keysym.Sym {
 		case sdl.K_UP, sdl.K_k:
@@ -613,10 +613,12 @@ func (g *Game) handleInput() {
 		switch e := event.(type) {
 		case *sdl.QuitEvent:
 			g.running = false
-		case *sdl.KeyDownEvent:
-			g.handleKeyDown(e)
-		case *sdl.KeyUpEvent:
-			g.handleKeyUp(e)
+		case *sdl.KeyboardEvent:
+			if e.Type == sdl.KEYDOWN {
+				g.handleKeyDown(e)
+			} else if e.Type == sdl.KEYUP {
+				g.handleKeyUp(e)
+			}
 		case *sdl.UserEvent:
 			g.handleUserEvent(e)
 		}
@@ -631,7 +633,7 @@ func (g *Game) updateFontTexture(text string, font *ttf.Font, texture **sdl.Text
 		*width = 0
 		*height = 0
 	}
-	surface, err := font.RenderUTF8_Blended(text, color)
+	surface, err := font.RenderUTF8Blended(text, color)
 	if err == nil {
 		w := surface.W
 		h := surface.H

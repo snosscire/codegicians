@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/veandco/go-sdl2/sdl"
-	"github.com/veandco/go-sdl2/sdl_ttf"
+	"github.com/veandco/go-sdl2/ttf"
 )
 
 type Texture struct {
@@ -38,7 +38,7 @@ func NewTheCode(renderer *sdl.Renderer) *TheCode {
 		if len(line) == 0 {
 			continue
 		}
-		surface, err := font.RenderUTF8_Blended(line, color)
+		surface, err := font.RenderUTF8Blended(line, color)
 		if err != nil {
 			log.Fatalf("line:%s,err:%v\n", line, err)
 		}
